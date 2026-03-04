@@ -1,60 +1,17 @@
-import { useState, useEffect } from 'react';
-import OptionSelector from '@/components/OptionSelector';
-import AnalysisDashboard from '@/components/AnalysisDashboard';
-import { BetOption } from '@/lib/types';
-import { useAnalysis } from '@/hooks/useAnalysis';
-
-const Index = () => {
-  const [selectedOption, setSelectedOption] = useState<BetOption | null>(null);
-  const { agents, games, isRunning, currentAgentIndex, runAnalysis } = useAnalysis();
-
-  const handleSelect = (option: BetOption) => {
-    setSelectedOption(option);
-    runAnalysis(option);
-  };
-
-  const handleBack = () => {
-    setSelectedOption(null);
-  };
-
-  if (selectedOption) {
-    return (
-      <AnalysisDashboardConnected
-        option={selectedOption}
-        onBack={handleBack}
-        agents={agents}
-        games={games}
-        isRunning={isRunning}
-        currentAgentIndex={currentAgentIndex}
-      />
-    );
-  }
-
-  return <OptionSelector onSelect={handleSelect} />;
-};
-
-// Connected version that receives state from parent
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
+import { BetOption } from '@/lib/types';
 import AgentPipeline from '@/components/AgentPipeline';
 import GameResults from '@/components/GameResults';
-import { Agent, AnalysisGame } from '@/lib/types';
+import { useAnalysis } from '@/hooks/useAnalysis';
 
-function AnalysisDashboardConnected({
-  option,
-  onBack,
-  agents,
-  games,
-  isRunning,
-  currentAgentIndex,
-}: {
+interface AnalysisDashboardProps {
   option: BetOption;
   onBack: () => void;
-  agents: Agent[];
-  games: AnalysisGame[];
-  isRunning: boolean;
-  currentAgentIndex: number;
-}) {
+}
+
+const AnalysisDashboard = ({ option, onBack }: AnalysisDashboardProps) => {
+  const { agents, games, isRunning, currentAgentIndex } = useAnalysis();
   const approved = games.filter(g => g.status === 'approved');
 
   return (
@@ -69,7 +26,7 @@ function AnalysisDashboardConnected({
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-mono"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            Back to Markets
           </button>
           <div className="flex items-center gap-3">
             <span className="text-3xl">{option.icon}</span>
@@ -78,23 +35,23 @@ function AnalysisDashboardConnected({
               <p className="text-xs text-muted-foreground">{option.description}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 min-w-[120px] justify-end">
-            {isRunning && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-mono text-primary">ANALYZING</span>
-              </>
-            )}
-            {!isRunning && approved.length > 0 && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-success" />
-                <span className="text-xs font-mono text-success">{approved.length} PICKS</span>
-              </>
-            )}
-          </div>
+          {isRunning && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-xs font-mono text-primary">ANALYZING</span>
+            </div>
+          )}
+          {!isRunning && approved.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success" />
+              <span className="text-xs font-mono text-success">{approved.length} PICKS READY</span>
+            </div>
+          )}
         </div>
 
+        {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Agent Pipeline - left column */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -106,6 +63,7 @@ function AnalysisDashboardConnected({
             </div>
           </motion.div>
 
+          {/* Results - right column */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -127,6 +85,6 @@ function AnalysisDashboardConnected({
       </div>
     </div>
   );
-}
+};
 
-export default Index;
+export default AnalysisDashboard;
