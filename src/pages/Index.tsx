@@ -121,7 +121,7 @@ function AnalysisDashboardConnected({
             {fetchError ? (
               <div className="text-center py-20">
                 <p className="font-mono text-sm text-destructive mb-2">⚠ {fetchError}</p>
-                <p className="text-xs text-muted-foreground">Check your RapidAPI key or try again later.</p>
+                <p className="text-xs text-muted-foreground">Check your API-Football key or try again later.</p>
               </div>
             ) : games.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
