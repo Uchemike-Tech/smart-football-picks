@@ -48,6 +48,7 @@ function AnalysisDashboardConnected({
   games,
   isRunning,
   currentAgentIndex,
+  fetchError,
 }: {
   option: BetOption;
   onBack: () => void;
