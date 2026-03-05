@@ -7,7 +7,9 @@ interface GameResultsProps {
 }
 
 const GameResults = ({ games, selectedMarket }: GameResultsProps) => {
-  const approved = games.filter(g => g.status === 'approved');
+  const visible = games.filter(g => g.status !== 'rejected');
+  const approved = visible.filter(g => g.status === 'approved');
+  const pending = visible.filter(g => g.status === 'pending');
   const rejected = games.filter(g => g.status === 'rejected');
 
   return (
@@ -20,17 +22,17 @@ const GameResults = ({ games, selectedMarket }: GameResultsProps) => {
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-destructive" />
-          <span className="text-destructive">{rejected.length} Rejected</span>
+          <span className="text-destructive">{rejected.length} Eliminated</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse" />
-          <span className="text-muted-foreground">{games.filter(g => g.status === 'pending').length} Pending</span>
+          <span className="text-muted-foreground">{pending.length} Pending</span>
         </div>
       </div>
 
-      {/* Games list */}
+      {/* Games list - only show non-rejected */}
       <div className="space-y-2">
-        {games.map((game, index) => (
+        {visible.map((game, index) => (
           <motion.div
             key={game.id}
             initial={{ opacity: 0, y: 10 }}

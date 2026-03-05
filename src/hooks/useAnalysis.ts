@@ -46,9 +46,9 @@ export function useAnalysis() {
 
       console.log(`Fetched ${data.fixtures.length} real fixtures for ${data.date}`);
 
-      // Take up to 30 fixtures, shuffle for variety
+      // Use all fixtures, shuffle for variety
       const shuffled = [...data.fixtures].sort(() => Math.random() - 0.5);
-      candidateGames = shuffled.slice(0, 30).map((f: any) => ({
+      candidateGames = shuffled.map((f: any) => ({
         id: f.id,
         homeTeam: f.homeTeam,
         awayTeam: f.awayTeam,
