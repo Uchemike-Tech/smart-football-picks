@@ -6,7 +6,7 @@ import { useAnalysis } from '@/hooks/useAnalysis';
 
 const Index = () => {
   const [selectedOption, setSelectedOption] = useState<BetOption | null>(null);
-  const { agents, games, isRunning, currentAgentIndex, runAnalysis } = useAnalysis();
+  const { agents, games, isRunning, currentAgentIndex, fetchError, runAnalysis } = useAnalysis();
 
   const handleSelect = (option: BetOption) => {
     setSelectedOption(option);
@@ -26,6 +26,7 @@ const Index = () => {
         games={games}
         isRunning={isRunning}
         currentAgentIndex={currentAgentIndex}
+        fetchError={fetchError}
       />
     );
   }
@@ -54,6 +55,7 @@ function AnalysisDashboardConnected({
   games: AnalysisGame[];
   isRunning: boolean;
   currentAgentIndex: number;
+  fetchError: string | null;
 }) {
   const approved = games.filter(g => g.status === 'approved');
 
@@ -115,7 +117,12 @@ function AnalysisDashboardConnected({
             <h2 className="font-mono text-sm text-muted-foreground uppercase tracking-wider mb-4">
               Match Analysis {games.length > 0 && `(${games.length} scanned)`}
             </h2>
-            {games.length === 0 ? (
+            {fetchError ? (
+              <div className="text-center py-20">
+                <p className="font-mono text-sm text-destructive mb-2">⚠ {fetchError}</p>
+                <p className="text-xs text-muted-foreground">Check your RapidAPI key or try again later.</p>
+              </div>
+            ) : games.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
                 <p className="font-mono text-sm">Initializing agent pipeline...</p>
               </div>
