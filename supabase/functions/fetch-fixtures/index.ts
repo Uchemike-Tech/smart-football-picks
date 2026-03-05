@@ -9,10 +9,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('RAPIDAPI_KEY');
+    const apiKey = Deno.env.get('APIFOOTBALL_KEY');
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ success: false, error: 'RAPIDAPI_KEY not configured' }),
+        JSON.stringify({ success: false, error: 'APIFOOTBALL_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -22,13 +22,12 @@ Deno.serve(async (req) => {
 
     console.log('Fetching fixtures for date:', today);
 
-    // Fetch today's fixtures from API-Football
+    // Use API-Football direct API (v3.football.api-sports.io)
     const response = await fetch(
-      `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${today}`,
+      `https://v3.football.api-sports.io/fixtures?date=${today}`,
       {
         headers: {
-          'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+          'x-apisports-key': apiKey,
         },
       }
     );
