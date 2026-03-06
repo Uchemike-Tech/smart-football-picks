@@ -17,33 +17,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0];
-
     console.log('Fetching fixtures for date:', today);
 
-    // Use API-Football direct API (v3.football.api-sports.io)
-    const response = await fetch(
-      `https://v3.football.api-sports.io/fixtures?date=${today}`,
-      {
-        headers: {
-          'x-apisports-key': apiKey,
-        },
+    const headers = { 'x-apisports-key': apiKey };
+
+    // Try today first, then next 7 days, then upcoming
+    let allFixtures: any[] = [];
+
+    // Attempt 1: today's fixtures
+    const res1 = await fetch(`https://v3.football.api-sports.io/fixtures?date=${today}`, { headers });
+    const data1 = await res1.json();
+    if (res1.ok) allFixtures = data1.response || [];
+
+    // Attempt 2: if empty, try next 3 days
+    if (allFixtures.length === 0) {
+      for (let d = 1; d <= 3; d++) {
+        const date = new Date();
+        date.setDate(date.getDate() + d);
+        const dateStr = date.toISOString().split('T')[0];
+        console.log('Trying date:', dateStr);
+        const res = await fetch(`https://v3.football.api-sports.io/fixtures?date=${dateStr}`, { headers });
+        const data = await res.json();
+        if (res.ok && data.response?.length > 0) {
+          allFixtures = data.response;
+          break;
+        }
       }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('API-Football error:', data);
-      return new Response(
-        JSON.stringify({ success: false, error: `API request failed: ${response.status}` }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    // Transform fixtures to our format
-    const fixtures = (data.response || []).map((fixture: any) => ({
+    // Attempt 3: if still empty, fetch next 100 upcoming fixtures
+    if (allFixtures.length === 0) {
+      console.log('No fixtures found in next 3 days, fetching next upcoming');
+      const res = await fetch(`https://v3.football.api-sports.io/fixtures?next=100`, { headers });
+      const data = await res.json();
+      if (res.ok) allFixtures = data.response || [];
+    }
+
+    const fixtures = allFixtures.map((fixture: any) => ({
       id: `fixture-${fixture.fixture.id}`,
       homeTeam: fixture.teams.home.name,
       awayTeam: fixture.teams.away.name,
@@ -53,11 +64,12 @@ Deno.serve(async (req) => {
         hour: '2-digit',
         minute: '2-digit',
       }),
+      date: fixture.fixture.date,
       fixtureId: fixture.fixture.id,
       status: fixture.fixture.status.short,
     }));
 
-    console.log(`Found ${fixtures.length} fixtures for today`);
+    console.log(`Found ${fixtures.length} fixtures`);
 
     return new Response(
       JSON.stringify({ success: true, fixtures, date: today }),
