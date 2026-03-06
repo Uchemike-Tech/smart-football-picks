@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     // Attempt 1: today's fixtures
     const res1 = await fetch(`https://v3.football.api-sports.io/fixtures?date=${today}`, { headers });
     const data1 = await res1.json();
+    console.log('API status:', res1.status, 'results:', data1.results, 'errors:', JSON.stringify(data1.errors), 'paging:', JSON.stringify(data1.paging));
     if (res1.ok) allFixtures = data1.response || [];
 
     // Attempt 2: if empty, try next 3 days
