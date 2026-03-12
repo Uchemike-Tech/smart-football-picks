@@ -18,16 +18,13 @@ Deno.serve(async (req) => {
     }
 
     const headers = { 'X-Auth-Token': apiKey };
-
-    // Get today's date range
     const today = new Date().toISOString().split('T')[0];
     const nextWeek = new Date();
     nextWeek.setDate(nextWeek.getDate() + 7);
     const nextWeekStr = nextWeek.toISOString().split('T')[0];
 
-    console.log('Fetching fixtures from football-data.org:', today, 'to', nextWeekStr);
+    console.log('Fetching fixtures from', today, 'to', nextWeekStr);
 
-    // Fetch matches for today + next 7 days
     const res = await fetch(
       `https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${nextWeekStr}`,
       { headers }
@@ -40,9 +37,23 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    console.log('API response matches count:', data.matches?.length || 0);
+    const allMatches = data.matches || [];
 
-    const fixtures = (data.matches || []).map((match: any) => ({
+    console.log(`Total matches fetched: ${allMatches.length}`);
+
+    // Filter: only upcoming/scheduled/in-play matches (exclude FINISHED, POSTPONED, CANCELLED, SUSPENDED)
+    const upcomingMatches = allMatches.filter((m: any) =>
+      ['TIMED', 'SCHEDULED', 'IN_PLAY', 'PAUSED', 'LIVE'].includes(m.status)
+    );
+
+    console.log(`Upcoming/active matches: ${upcomingMatches.length}`);
+
+    // Sort by date (soonest first)
+    upcomingMatches.sort((a: any, b: any) =>
+      new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()
+    );
+
+    const fixtures = upcomingMatches.map((match: any) => ({
       id: `fixture-${match.id}`,
       homeTeam: match.homeTeam?.name || 'TBD',
       awayTeam: match.awayTeam?.name || 'TBD',
@@ -57,7 +68,7 @@ Deno.serve(async (req) => {
       status: match.status,
     }));
 
-    console.log(`Returning ${fixtures.length} fixtures`);
+    console.log(`Returning ${fixtures.length} upcoming fixtures`);
 
     return new Response(
       JSON.stringify({ success: true, fixtures, date: today }),
