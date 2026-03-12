@@ -18,18 +18,13 @@ Deno.serve(async (req) => {
     }
 
     const headers = { 'X-Auth-Token': apiKey };
-
-    // Get today's date range
     const today = new Date().toISOString().split('T')[0];
-    const nextWeek = new Date();
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const nextWeekStr = nextWeek.toISOString().split('T')[0];
 
-    console.log('Fetching fixtures from football-data.org:', today, 'to', nextWeekStr);
+    console.log('Fetching fixtures for today only:', today);
 
-    // Fetch matches for today + next 7 days
+    // Fetch only today's matches
     const res = await fetch(
-      `https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${nextWeekStr}`,
+      `https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${today}`,
       { headers }
     );
 
@@ -40,9 +35,47 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    console.log('API response matches count:', data.matches?.length || 0);
+    let matches = data.matches || [];
+    let dateLabel = today;
 
-    const fixtures = (data.matches || []).map((match: any) => ({
+    console.log(`Today's matches: ${matches.length}`);
+
+    // If no matches today, try tomorrow, then day after
+    if (matches.length === 0) {
+      for (let d = 1; d <= 3; d++) {
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + d);
+        const nextDateStr = nextDate.toISOString().split('T')[0];
+        console.log('No matches today, trying:', nextDateStr);
+
+        const nextRes = await fetch(
+          `https://api.football-data.org/v4/matches?dateFrom=${nextDateStr}&dateTo=${nextDateStr}`,
+          { headers }
+        );
+
+        if (nextRes.ok) {
+          const nextData = await nextRes.json();
+          if (nextData.matches?.length > 0) {
+            matches = nextData.matches;
+            dateLabel = nextDateStr;
+            console.log(`Found ${matches.length} matches for ${nextDateStr}`);
+            break;
+          }
+        } else {
+          await nextRes.text(); // consume body
+        }
+      }
+    }
+
+    // Filter out finished matches - only show scheduled/timed/in-play
+    const activeMatches = matches.filter((m: any) => 
+      ['TIMED', 'SCHEDULED', 'IN_PLAY', 'PAUSED', 'LIVE'].includes(m.status)
+    );
+
+    // Use active matches if available, otherwise all matches
+    const finalMatches = activeMatches.length > 0 ? activeMatches : matches;
+
+    const fixtures = finalMatches.map((match: any) => ({
       id: `fixture-${match.id}`,
       homeTeam: match.homeTeam?.name || 'TBD',
       awayTeam: match.awayTeam?.name || 'TBD',
@@ -57,10 +90,10 @@ Deno.serve(async (req) => {
       status: match.status,
     }));
 
-    console.log(`Returning ${fixtures.length} fixtures`);
+    console.log(`Returning ${fixtures.length} fixtures for ${dateLabel}`);
 
     return new Response(
-      JSON.stringify({ success: true, fixtures, date: today }),
+      JSON.stringify({ success: true, fixtures, date: dateLabel }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
